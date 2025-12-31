@@ -1,9 +1,24 @@
+import 'package:expense_tracker/utils/api_client.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 
-void main() {
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+}
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   runApp(const SplitTrackerApp());
 }
 
@@ -39,8 +54,68 @@ class _SplitTrackerAppState extends State<SplitTrackerApp> {
         _savedUserId = userId;
         _savedUserName = userName;
       });
+
+      _setupFirebase(userId);
     }
     setState(() => _isLoading = false);
+  }
+
+  Future<void> _setupFirebase(int userId) async {
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+    NotificationSettings settings = await messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      print('User granted permission');
+
+      String? token = await messaging.getToken();
+
+      if (token != null) {
+        print("Firebase Messaging Token: $token");
+
+        try {
+          await ApiClient.create(baseUrl).post(
+            "$baseUrl/notifications/register-device",
+            data: {"userId": userId, "token": token},
+          );
+        } catch (e) {
+          print("Failed to register token with backend: $e");
+        }
+      }
+
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        print('Got a message whilst in the foreground!');
+        scaffoldMessengerKey.currentState?.showSnackBar(
+          SnackBar(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  message.notification!.title ?? "New Notification",
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(message.notification!.body ?? ""),
+              ],
+            ),
+            backgroundColor: Colors.indigo, // Use your app theme color
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'VIEW',
+              textColor: Colors.white,
+              onPressed: () {
+                // Navigate to specific screen if needed
+              },
+            ),
+          ),
+        );
+      });
+    }
   }
 
   @override
@@ -51,6 +126,7 @@ class _SplitTrackerAppState extends State<SplitTrackerApp> {
     return MaterialApp(
       title: 'SplitWise Clone',
       debugShowCheckedModeBanner: false,
+      scaffoldMessengerKey: scaffoldMessengerKey,
 
       // LIGHT THEME
       theme: ThemeData(

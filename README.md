@@ -1,109 +1,128 @@
-# Split & Track - Mobile App
+# 📱 Split Tracker - Mobile App
 
-   
+> The native Android interface for the Split Tracker Microservices ecosystem. Built with **Flutter** and **Material Design 3**.
 
-**Split & Track Mobile** is the frontend client for the Distributed Expense Splitting System. Built with **Flutter**, it provides a modern, responsive interface for users to manage groups, track expenses, and visualize spending habits.
+## 📖 Overview
 
-It communicates with the backend via a unified **API Gateway**, utilizing JWT for secure, stateless authentication.
+This application serves as the user interface for the Split Tracker system. It allows users to register, create groups, split expenses, and receive **real-time push notifications** when they are added to an expense.
 
-## 📱 Features
+It connects to the backend API Gateway via REST and handles asynchronous events (notifications) via Firebase Cloud Messaging (FCM).
 
-  * **Secure Authentication:** User Login & Registration with JWT storage.
-  * **Group Management:** Create groups and invite members via email (Lazy Registration support).
-  * **Expense Tracking:**
-      * Add expenses with descriptions and categories.
-      * **Smart Splitting:** Support for Equal and Unequal split distribution.
-  * **Interactive Dashboard:**
-      * View "Who owes whom" balances in real-time.
-      * Settle debts with a single tap.
-      * Visual "Spend Analysis" using interactive Pie Charts.
-  * **Modern UI/UX:**
-      * **Material You (Material 3)** design system.
-      * **Dark Mode & Light Mode** support (System adaptive).
-      * Swipe-to-delete gestures and modal bottom sheets for details.
+---
+
+## ✨ Key Features
+
+### 1. User Authentication & Session Management
+
+* **Seamless Login:** Users can log in via email/name.
+* **Auto-Login:** The app remembers the session using `SharedPreferences`, so users don't need to log in every time they open the app.
+* **Device Registration:** Automatically syncs the device's **FCM Token** with the backend upon login to ensure notifications reach the correct device.
+
+### 2. Expense Management
+
+* **Add Expense:** A clean UI to enter descriptions, amounts, and select friends to split with.
+* **Dynamic Splitting:** Automatically calculates the split amount based on the number of users involved.
+* **Real-time Updates:** Pull-to-refresh functionality to see the latest expenses added by other users.
+
+### 3. Smart Notifications (Firebase)
+
+* **Push Notifications:** Receives instant alerts when someone adds you to an expense (triggered by Kafka on the backend).
+* **Foreground Handling:** Custom **In-App SnackBar** notifications appear if the user is currently using the app, ensuring they never miss an update.
+* **Background Handling:** Standard system tray notifications when the app is minimized.
+
+### 4. Modern UI/UX (Material 3)
+
+* **Adaptive Theming:** Supports both **Light Mode** and **Dark Mode** (syncs with system settings).
+* **Responsive Design:** Custom input fields, floating action buttons, and list tiles designed for touch targets.
+* **Loading States:** Elegant circular progress indicators during API calls.
+
+---
 
 ## 🛠️ Tech Stack
 
-  * **Framework:** Flutter (Dart)
-  * **State Management:** `setState` (Clean Architecture approach)
-  * **Networking:** `Dio` (with Interceptors for JWT injection)
-  * **Charts:** `fl_chart`
-  * **Local Storage:** `shared_preferences`
-  * **Design:** Material 3 (Themed Widgets)
+* **Framework:** Flutter (SDK > 3.0)
+* **Language:** Dart
+* **Networking:** `dio` (for robust HTTP requests with interceptors)
+* **Local Storage:** `shared_preferences`
+* **Notifications:** `firebase_messaging`, `flutter_local_notifications`
+* **UI Components:** Material Design 3
 
-## ⚙️ Setup & Installation
+---
+
+## 🚀 Installation & Setup
 
 ### Prerequisites
 
-  * [Flutter SDK](https://docs.flutter.dev/get-started/install) installed.
-  * Android Studio or VS Code with Flutter extensions.
-  * The **Split & Track Backend** running (via Docker or locally).
+* Flutter SDK installed.
+* An Android Emulator or Physical Device.
+* Backend services running (see Backend README).
 
-### Installation Steps
+### 1. Configuration
 
-1.  **Clone the repository:**
+Open `lib/main.dart` or `lib/utils/api_client.dart` and update the `baseUrl`:
 
-    ```bash
-    git clone https://github.com/your-username/split-and-track-mobile.git
-    cd split-and-track-mobile
-    ```
+```dart
+// For Emulator
+final String baseUrl = "http://10.0.2.2:8080/api"; 
 
-2.  **Install Dependencies:**
+// For Physical Device (Ensure phone and PC are on same WiFi)
+final String baseUrl = "http://192.168.1.X:8080/api"; 
 
-    ```bash
-    flutter pub get
-    ```
+```
 
-3.  **Configure API Endpoint:**
-    Open `lib/main.dart` (or `lib/utils/api_client.dart`) and update the `baseUrl` to point to your **API Gateway**.
+### 2. Install Dependencies
 
-      * **If running on Emulator:** Use `10.0.2.2:8080`
-      * **If running on Real Device:** Use your LAN IP, e.g., `192.168.1.5:8080`
+```bash
+flutter pub get
 
-    <!-- end list -->
+```
 
-    ```dart
-    // Example in main.dart
-    final String baseUrl = "http://192.168.1.5:8080/api"; 
-    ```
+### 3. Run the App
 
-4.  **Run the App:**
+```bash
+flutter run
 
-    ```bash
-    flutter run
-    ```
+```
+
+---
 
 ## 📂 Project Structure
 
-```text
+```
 lib/
-├── main.dart              # Entry point & Theme Config
-├── screens/               # UI Pages
-│   ├── login_screen.dart
-│   ├── home_screen.dart
-│   ├── group_detail_screen.dart
-│   ├── add_expense_screen.dart
-│   └── analysis_screen.dart
-├── widgets/               # Reusable UI components
-├── utils/                 # Helpers
-│   └── api_client.dart    # Dio Setup & Interceptors
-└── models/                # Data Models (Optional)
+├── main.dart             # App Entry Point & Theme Config
+├── firebase_options.dart # Firebase Configuration (Generated)
+├── screens/
+│   ├── login_screen.dart # Login logic & Token Registration
+│   ├── home_screen.dart  # Dashboard & Expense List
+│   └── add_expense_screen.dart # Form to create splits
+├── utils/
+│   └── api_client.dart   # Dio HTTP Client Wrapper
+└── widgets/
+    └── expense_tile.dart # Reusable UI component for list items
+
 ```
 
-## 🚀 Key Implementation Details
+---
 
-  * **JWT Handling:** The `ApiClient` class uses a Dio Interceptor to automatically attach the `Bearer` token to every outgoing request, ensuring seamless security.
-  * **Dynamic Theming:** The app uses `ColorScheme.fromSeed` to generate a cohesive color palette that adapts automatically to the user's device theme (Light/Dark).
-  * **Optimized Lists:** Uses `ListView.builder` and `CustomScrollView` (Slivers) for performant scrolling even with large transaction histories.
+## 🐛 Troubleshooting
 
-## 🤝 Contributing
+* **"Connection Refused":**
+* Ensure your backend Docker containers are running.
+* Check if your phone/emulator can reach the IP address.
 
-1.  Fork the Project
-2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4.  Push to the Branch (`git push origin feature/AmazingFeature`)
-5.  Open a Pull Request
 
------
+* **"Notification not received":**
+* Check `docker logs notification-service`.
+* Ensure you logged in *after* restarting the backend (Token must be in the DB).
+* Check if the app has Notification Permissions enabled in Android Settings.
 
-*Built by Rupesh | 2025*
+
+
+---
+
+## 👤 Author
+
+**Rupesh**
+
+* [GitHub](https://github.com/RupeshKankrej)

@@ -1,3 +1,5 @@
+import 'package:expense_tracker/utils/api_client.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -34,9 +36,38 @@ class _LoginScreenState extends State<LoginScreen> {
         final userData = response.data;
 
         final prefs = await SharedPreferences.getInstance();
+
+        final userId = response.data['id'];
+        final userName = response.data['name'];
+
         await prefs.setString('token', userData['token']);
-        await prefs.setInt('userId', userData['id']);
-        await prefs.setString('userName', userData['name']);
+        await prefs.setInt('userId', userId);
+        await prefs.setString('userName', userName);
+
+        try {
+          FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+          await messaging.requestPermission(
+            alert: true,
+            badge: true,
+            sound: true,
+          );
+
+          String? token = await messaging.getToken();
+
+          if (token != null) {
+            print("Registering Token on Login: $token");
+
+            // Send to Backend
+            await ApiClient.create(widget.baseUrl).post(
+              "${widget.baseUrl}/notifications/register-device",
+              data: {"userId": userId, "token": token},
+            );
+            print("Token registered successfully");
+          }
+        } catch (e) {
+          print("Failed to register token during login: $e");
+        }
 
         Navigator.pushReplacement(
           context,
